@@ -27,7 +27,7 @@ class Session(StateAbstract, TimestampAbstract):
     user = models.ForeignKey(
         User,
         on_delete=models.DO_NOTHING,
-        related_name='receiver',
+        related_name='user_sessions',
         null=True,
         blank=True,
     )

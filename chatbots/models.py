@@ -31,7 +31,7 @@ class Response(models.Model):
     user = models.ForeignKey(
         User,
         on_delete=models.DO_NOTHING,
-        related_name='receiver',
+        related_name='chatbot_responses',
         null=True,
         blank=True,
     )
