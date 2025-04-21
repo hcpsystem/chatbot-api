@@ -1,18 +1,15 @@
 import os
-import json
 from datetime import datetime, timedelta, timezone
 
 import pandas as pd
-import streamlit as st
 from django.http import HttpResponse
 
 from twilio.rest import Client
 from twilio.twiml.messaging_response import MessagingResponse
 
 from core.services.app import AppService
-from chatbot.models import Answer, Question, Profile
-from chatbot.services.send_message import SendMessageService
-from core.services.init.accounts.util import InitUtil
+from chatbots.models import Question
+from users.models import User
 
 
 class MessageService(AppService):
@@ -52,7 +49,7 @@ class MessageService(AppService):
         to = self.values['_to']
         user = self.values['_from']
 
-        self.users = Profile.objects.filter(to=to, from_id=user).first()
+        self.users = User.objects.filter(to=to, from_id=user).first()
         if self.users:
             self.load_user_settings()
             self.check_inactivity()
@@ -132,9 +129,9 @@ class MessageService(AppService):
 
     def create_new_profile(self, to, user):
         # Create a new profile if the user doesn't exist
-        total = Profile.objects.all().count()
+        total = User.objects.all().count()
         id = total + 1
-        Profile.objects.create(
+        User.objects.create(
             id=id,
             to=to,
             from_id=user,
@@ -232,7 +229,7 @@ class MessageService(AppService):
         }
         to = self.data['_to'] if '_to' in self.data else None
         user = self.data['_from'] if '_from' in self.data else None
-        Profile.objects.filter(to=to, from_id=user).update(**defaults)
+        User.objects.filter(to=to, from_id=user).update(**defaults)
 
     def generate_response(self, response):
         # Generate the final response
@@ -271,7 +268,7 @@ class MessageService(AppService):
         _account_sid = data['_account_sid'] if '_account_sid' in data else None
         _api_version = data['_api_version'] if '_api_version' in data else None
 
-        users = Profile.objects.filter(to=to, from_id=user).first()
+        users = User.objects.filter(to=to, from_id=user).first()
         question_id = '10'
         question_id_old = 0
         is_answer = False
@@ -297,7 +294,7 @@ class MessageService(AppService):
                     'from_id': user + '_old',
                 }
                 is_reload = True
-                Profile.objects.filter(to=to, from_id=user).update(**defaults)
+                User.objects.filter(to=to, from_id=user).update(**defaults)
 
             if 'question_id' in users.settings:
                 question_id = question_id if message in home.values else users.settings['question_id']
@@ -328,9 +325,9 @@ class MessageService(AppService):
                     is_answer = False
 
         else:
-            total = Profile.objects.all().count()
+            total = User.objects.all().count()
             id = total + 1
-            Profile.objects.create(
+            User.objects.create(
                 **{
                     'id': id,
                     'to': to,
@@ -383,7 +380,8 @@ class MessageService(AppService):
                     else:
                         settings = answer.settings['questions'] if 'questions' in answer.settings else None
                         is_group = answer.settings['is_group'] if 'is_group' in answer.settings else False
-                        settings_next = answer.settings['questions_next'] if 'questions_next' in answer.settings else None
+                        settings_next = answer.settings[
+                            'questions_next'] if 'questions_next' in answer.settings else None
                         print('settings_next')
                         print(settings_next)
                         print(is_group)
@@ -483,7 +481,7 @@ class MessageService(AppService):
                             "message": message,
                         },
                     }
-                    Profile.objects.filter(to=to, from_id=user).update(**defaults)
+                    User.objects.filter(to=to, from_id=user).update(**defaults)
                     if is_reload:
                         if settings_reload:
                             question_all = settings_reload
@@ -520,251 +518,10 @@ class MessageService(AppService):
             'email_verified_at': data['email_verified_at'],
             'image_pin': data['image_pin'],
             'photo': data['photo'],
-            'status': USER_STATUS.COMPLETED,
-            'role': USER_ROLES.ACCOUNT,
+            'status':' USER_STATUS.COMPLETED',
+            'role': 'USER_ROLES.ACCOUNT',
             'position': data['position'],
         }
-
-    def create(self, data):
-        # Whatsapp
-        # try:
-        limit_minute = os.environ['LIMIT_MINUTE_FOR_END']
-
-        _sms_message_sid = data['_sms_message_sid'] if '_sms_message_sid' in data else None
-        _num_media = data['_num_media'] if '_num_media' in data else None
-        _sms_sid = data['_sms_sid'] if '_sms_sid' in data else None
-        _sms_status = data['_sms_status'] if '_sms_status' in data else None
-        message = data['_body'] if '_body' in data else None
-        body = data['_body'] if '_body' in data else None
-        to = data['_to'] if '_to' in data else None
-        _num_segments = data['_num_segments'] if '_num_segments' in data else None
-        _message_sid = data['_message_sid'] if '_message_sid' in data else None
-        user = data['_from'] if '_from' in data else None
-        _profile_name = data['_profile_name'] if '_profile_name' in data else None
-        wa_id = data['_wa_id'] if '_wa_id' in data else None
-        _message_type = data['_message_type'] if '_message_type' in data else None
-        _referral_num_media = data['_referral_num_media'] if '_referral_num_media' in data else None
-        _account_sid = data['_account_sid'] if '_account_sid' in data else None
-        _api_version = data['_api_version'] if '_api_version' in data else None
-
-        users = Profile.objects.filter(to=to, from_id=user).first()
-        question_id = 1
-        question_id_old = 0
-        is_answer = False
-        answer_id = 0
-        category_id = 0
-        category_name = ''
-        answer_label = ''
-        date = datetime.now(timezone.utc)
-        vector = []
-
-        if users:
-            # Inicio
-            home = pd.Series(['go back top', 'Go back top'])
-
-            if 'question_id' in users.settings:
-                question_id = question_id if message in home.values else users.settings['question_id']
-            if 'question_id_old' in users.settings:
-                question_id_old = question_id_old if message in home.values else users.settings['question_id_old']
-            if 'is_answer' in users.settings:
-                is_answer = is_answer if message in home.values else users.settings['is_answer']
-            if 'answer_id' in users.settings:
-                answer_id = answer_id if message in home.values else users.settings['answer_id']
-            if 'category_id' in users.settings:
-                category_id = category_id if message in home.values else users.settings['category_id']
-            if 'category_name' in users.settings:
-                category_name = category_name if message in home.values else users.settings['category_name']
-            if 'vectorial' in users.settings:
-                vector = vector if message in home.values else users.settings['vectorial']
-            if 'answer_label' in users.settings:
-                answer_label = answer_label if message in home.values else users.settings['answer_label']
-
-            if users.updated_at:
-                print('date')
-                print(date)
-                print('updated_at')
-                print(users.updated_at)
-                print('timedelta')
-                print(users.updated_at + timedelta(minutes=int(limit_minute)))
-                date_old = users.updated_at + timedelta(minutes=int(limit_minute))
-                print('date_old')
-                print(date_old)
-                if date > date_old:
-                    question_id = 10 if question_id > 7 else question_id
-                    is_answer = False if question_id > 7 else question_id
-
-        else:
-            total = Profile.objects.all().count()
-            id = total + 1
-            Profile.objects.create(
-                **{
-                    'id': id,
-                    'to': to,
-                    'from_id': user,
-                    'name': body,
-                    'wa_id': wa_id,
-                    'settings': {'question_id': question_id, 'answer_id': answer_id, 'is_answer': False},
-                }
-            )
-
-        try:
-            number = int(message)
-        except (ValueError, TypeError):
-            number = 0
-
-        response = MessagingResponse()
-        next = True
-        match question_id:
-            case 20:
-                query = message
-                if 'responses' not in st.session_state:
-                    st.session_state['responses'] = ["¿Como puedo ayudarte?"]
-
-            case 1 | 2 | 3 | 4 | 6 | 7 | 9 | 10 | 11 | 12 | 13:
-                print('Question::1')
-                print(question_id)
-                print(question_id_old)
-                question_all = [question_id]
-
-                if is_answer:
-                    answer = Answer.objects.filter(question=question_id_old, order=number).first()
-                    if not answer:
-                        next = False
-                        response.message(f'Lo siento, no tenemos la opción {message} ¿Puedes volver a digitar la '
-                                         f'alternativa?.')
-                    else:
-                        settings = answer.settings['questions'] if 'questions' in answer.settings else None
-                        if settings:
-                            question_all = settings
-                        answer_id = answer.order
-                        if question_id_old == 3:
-                            category_id = answer.order
-                            category_name = answer.label
-                        if question_id_old == 8:
-                            answer_label = answer.label
-            case 5:
-                next = True
-                # if is_answer:
-                if 0 < number < 18:
-                    question_all = [6]
-                elif number > 100:
-                    next = False
-                    response.message(f'Respuesta incorecta !.{message}')
-                else:
-                    question_all = [7, 8]
-            case 8:
-                question_all = [7, 8]
-
-            case 15:
-                is_msg = True
-                if is_answer:
-                    for vt in vector:
-                        if vt['id'] == number:
-                            is_msg = vt['is_valid']
-                            if vt['is_valid']:
-                                message = vt['name']
-                            else:
-                                next = False
-                                response.message('Puedes escribir otra consulta. ✍️\n')
-
-            case _:  # change this in default
-                response.message(f'Respuesta incorecta !.{message}')
-
-        if next:
-            for question_id in question_all:
-                question_id_old = question_id
-                r = []
-                question = Question.objects.filter(flow_id=question_id).first()
-                if question:
-                    is_answer = question.is_options
-                    content_sid = None
-                    print(user)
-                    if 'whatsapp' in user:
-                        print('whatsapp')
-                        content_sid = question.content_sid
-                    if content_sid:
-                        SendMessageService.send_content(content_sid, user, message)
-                    else:
-                        if question.is_read:
-                            # print('is_read')
-                            # hola = question.name
-                            # question_name = hola.replace('XXXXXX', message)
-                            # print(question_name)
-                            response.message(f'{question.name.replace("XXXXXX", message)}')
-                            # response.message(f'{question_name.replace("XXXXXX", message)}')
-                            # response.message(f'{question_name}')
-                            # SendMessageService.send_message(to, user, f'{question.name.replace("XXXXXX", message)}')
-                            # response.message(f'{message}')
-                        answer = Answer.objects.filter(question=question.id).order_by('order')
-                        if answer:
-                            for asw in answer:
-                                if asw.id == 2:
-                                    # response.body("imagen")
-                                    response.message().media(
-                                        "https://victoriasunafil.net.pe/static/trabajo_domestico.png")
-                                else:
-                                    if question.is_options:
-                                        r.append(f'{asw.order}. {asw.name} \n ')
-                                    else:
-                                        response.message(f'{asw.name} \n ')
-                        if question.is_options:
-                            lol_string = ''.join(map(str, r))
-                            response.message(f'{lol_string}')
-                            # response.message({
-                            #     "give you up",
-                            #     "let you down",
-                            #     "run around and desert you",
-                            #     "make you cry",
-                            #     "say goodbye",
-                            #     "tell a lie, and hurt you"
-                            # })
-                            # response.message("Option 1").list_picker("option1")
-                            # response.message("Option 2").list_picker("option2")
-                            # response.message("Option 3").list_picker("option3")
-
-                    settings = question.settings['questions'] if 'questions' in question.settings else None
-
-                    if settings:
-                        for s in settings:
-                            question_id = s
-
-                    defaults = {
-                        'updated_at': date,
-                        'settings': {
-                            "question_id": question_id,
-                            "answer_id": answer_id,
-                            "question_id_old": question_id_old,
-                            "is_answer": is_answer,
-                            "category_id": category_id,
-                            "category_name": category_name,
-                            "answer_label": answer_label,
-                            "message": message,
-                        },
-                    }
-                    Profile.objects.filter(to=to, from_id=user).update(**defaults)
-        else:
-            defaults = {
-                'updated_at': date,
-                'settings': {
-                    "question_id": question_id,
-                    "answer_id": answer_id,
-                    "question_id_old": question_id_old,
-                    "is_answer": is_answer,
-                    "category_id": category_id,
-                    "category_name": category_name,
-                    "answer_label": answer_label,
-                    "vectorial": vector,
-                    "message": message,
-                },
-            }
-            Profile.objects.filter(to=to, from_id=user).update(**defaults)
-
-        return HttpResponse(str(response))
-
-        # except:
-        #     response = MessagingResponse()
-        #     response.message('Error Respuesta incorecta !')
-        #     return HttpResponse(str(response))
 
     def send_message(self, to, of, body):
         # account_sid = os.environ['TWILIO_ACCOUNT_SID']

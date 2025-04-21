@@ -4,7 +4,8 @@ from datetime import datetime, timezone, timedelta
 import pandas as pd
 from django.http import HttpResponse
 from twilio.twiml.messaging_response import MessagingResponse
-from chatbot.models import Profile, Question, Response
+from chatbots.models import Question, Response
+from users.models import User
 
 logger = logging.getLogger(__name__)
 
@@ -41,15 +42,15 @@ class ChatbotResponder:
         return self.data.get(key, default)
 
     def update_profile_settings(self, updates):
-        Profile.objects.filter(to=self.to, from_id=self.user).update(**updates)
+        User.objects.filter(to=self.to, from_id=self.user).update(**updates)
 
     def get_or_create_profile(self):
-        profile = Profile.objects.filter(to=self.to, from_id=self.user).first()
+        profile = User.objects.filter(to=self.to, from_id=self.user).first()
         if profile:
             return profile
 
-        new_id = Profile.objects.all().count() + 1
-        profile = Profile.objects.create(
+        new_id = User.objects.all().count() + 1
+        profile = User.objects.create(
             id=new_id,
             to=self.to,
             from_id=self.user,
