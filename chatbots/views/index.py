@@ -10,8 +10,9 @@ from core.utils.render import APIRender
 
 from chatbots.services.question import QuestionService
 from chatbots.serializers.twilio import TwilioSerializer
-from chatbots.services.chatbot_responder import ChatbotResponder
 from chatbots.services.web import WebService
+from chatbots.services.message import MessageService
+from chatbots.services.chatbot_responder import ChatbotResponder
 
 
 class IndexViewSet(viewsets.GenericViewSet):
@@ -37,12 +38,13 @@ class IndexViewSet(viewsets.GenericViewSet):
             serializer = TwilioSerializer(data=request.data)
             serializer.is_valid(raise_exception=True)
             data = serializer.validated_data
-            # return MessageService.response(self, data)
+            return MessageService.response(self, data)
+
             # handler = MessageService(data)
             # return handler.response()
 
-            chatbot = ChatbotResponder(data)
-            return chatbot.handle()
+            # chatbot = ChatbotResponder(data)
+            # return chatbot.handle()
 
             # return MessageService(data).response(self, data)
         except ValidationError as e:
