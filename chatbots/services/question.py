@@ -13,7 +13,7 @@ class QuestionService(AppService):
         }
 
     def register(self):
-        self.reset()
+        # self.reset()
         settings = {'is_input': True, 'questions': ['11']}
         Question.objects.create(
             **{'id': 1, 'flow_id': '10', 'name': 'Chatbot XXX', 'settings': settings})

@@ -23,14 +23,7 @@ class User(StateAbstract, TimestampAbstract):
 
 
 class Session(StateAbstract, TimestampAbstract):
-    id = models.IntegerField(primary_key=True, auto_created=True, verbose_name='ID', editable=True, unique=True)
-    user = models.ForeignKey(
-        User,
-        on_delete=models.DO_NOTHING,
-        related_name='user_sessions',
-        null=True,
-        blank=True,
-    )
+    user_id = models.CharField(max_length=50, null=True, blank=True)
     token = models.CharField(max_length=255, null=True, blank=True)
     type = models.CharField(max_length=30, blank=True)
     is_active = models.BooleanField(default=True)
