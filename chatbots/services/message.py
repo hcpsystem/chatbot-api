@@ -13,10 +13,6 @@ from users.models import User
 
 
 class MessageService(AppService):
-    def __init__(self, data):
-        account_sid = os.environ['TWILIO_ACCOUNT_SID']
-        auth_token = os.environ['TWILIO_AUTH_TOKEN']
-
     def response(self, data):
         # Whatsapp
         # try:
@@ -249,30 +245,3 @@ class MessageService(AppService):
         #     response.message('Error Respuesta incorecta !')
         # return HttpResponse(str(response))
 
-    def load_data_profile(data):
-        return {
-            'first_name': data['first_name'],
-            'last_name': data['last_name'],
-            'country_code': data['country_code'],
-            'phone': data['phone'],
-            'step': 'home',
-            'is_active': data['is_active'],
-            'email': data['email'],
-            'username': data['username'],
-            'email_verified_at': data['email_verified_at'],
-            'image_pin': data['image_pin'],
-            'photo': data['photo'],
-            'status':' USER_STATUS.COMPLETED',
-            'role': 'USER_ROLES.ACCOUNT',
-            'position': data['position'],
-        }
-
-    def send_message(self, to, of, body):
-        # account_sid = os.environ['TWILIO_ACCOUNT_SID']
-        # auth_token = os.environ['TWILIO_AUTH_TOKEN']
-        # client = Client(account_sid, auth_token)
-        messaging_service_sid = os.environ['TWILIO_MESSAGING_SERVICE_SID']
-        return self.client.messages.create(to=to, messaging_service_sid=messaging_service_sid, body=body, from_=of)
-
-    def replace_label(self):
-        pass
